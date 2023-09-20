@@ -1,0 +1,19 @@
+---
+- name: Check entry in autid.rules
+  shell: cat /etc/audit/rules.d/10-base-config.rules | grep "perm=wa"
+  register: aud_rules
+  ignore_errors: true
+
+- name: Create a new file named 10-base-config.rules and add audit rules into it
+  lineinfile:
+    path: /etc/audit/rules.d/10-base-config.rules
+    line: -a always,exit -S all -F dir=/etc -F perm=wa -F auid>=34601 -F auid<=34899
+    state: present
+    create: yes
+  register: file_created
+  when: aud_rules is failed
+
+- name: run command to reload the audit rules augenrules --load
+  shell: augenrules --load
+  register: rules_reloaded
+  when: aud_rules is failed

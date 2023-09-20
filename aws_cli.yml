@@ -1,0 +1,46 @@
+---
+- name: Execute role to update aws cli version EC2 Instance
+  hosts: group1
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: remove aws cli directory
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /usr/local/bin/aws
+        - /usr/local/bin/aws_completer
+        - /usr/local/aws-cli
+        - /tmp/awscliv2.zip
+        - /tmp/aws
+
+    - name: download awscli package
+      shell: curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.3.7.zip" -o "/tmp/awscliv2.zip"
+      register: aws_cli
+
+    - name: unzip aws cli
+      shell: unzip /tmp/awscliv2.zip -d /tmp
+      register: unzip_cli
+
+    - name: check for install file
+      stat:
+        path: /tmp/aws/install
+      register: cli_ins
+
+    - name: install aws cli
+      shell: /tmp/aws/install
+      register: cli_install
+      when: cli_ins.stat.exists
+
+#    - name: pause 1 min
+#      pause:
+#         minutes: 1
+ 
+    - name: verify aws cli version
+      shell: aws --version
+      register: aws_cli_version
+      become: false
+
+    - debug: var=aws_cli_version.stdout 
+

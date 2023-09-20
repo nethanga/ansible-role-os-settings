@@ -1,0 +1,87 @@
+---
+# tasks file for ansible-role-os-settings
+
+- name: Information gathering procedures
+  block:
+    - name: Get hostname
+      command: hostname
+      register: host_name
+
+    - name: Get date
+      shell: echo `date +%d%m%Y`
+      register: date
+
+    - name: Set hostname variable
+      set_fact:
+        hostname: "{{ host_name.stdout_lines[0] }}"
+        date: "{{ date.stdout_lines[0] }}"
+    - debug:
+        msg:
+          - "Hostname : {{ hostname }}"
+          - "Date : {{ date }}"
+          - "inventory: {{ inventory_hostname }}"
+
+    - block:
+        - name: Include Playbook for sudoers Settings
+          include_tasks: edit_sudoers.yml
+          when: execute_sudoers
+          
+        - name: Include Playbook for Package Installation
+          include_tasks: package_installation.yml
+          when: execute_package_installation
+
+        - name: Include Playbook for General OS Settings
+          include_tasks: os_general_settings.yml
+          when: execute_os_general_settings
+
+        - name: Include Playbook for LVM Disk1 Creation
+          include_tasks: lvm_disk1.yml
+          when: execute_lvm_disk1
+
+        - name: Include Playbook for LVM Disk2 Creation
+          include_tasks: lvm_disk2.yml
+          when: execute_lvm_disk2
+
+        - name: Include Playbook for LVM Custom Disk Creation
+          include_tasks: lvm_disk3.yml
+          when: execute_lvm_disk3
+
+        - name: Include Playbook for SSH related Settings
+          include_tasks: sshd_config.yml
+          when: execute_sshd_config
+
+        - name: Include Playbook for Grub related Settings
+          include_tasks: grub_conf.yml
+          when: execute_grub_conf
+
+        - name: Include Playbook for sysctl & yum related Settings
+          include_tasks: sysctl_yum_conf.yml
+          when: execute_sysctl_yum_conf
+
+        - name: Include Playbook for rsyslog & logrotate related Settings
+          include_tasks: rsyslog_logrotate_conf.yml
+          when: execute_rsyslog_logrotate_conf
+
+        - name: Include Playbook for motd Settings
+          include_tasks: motd.yml
+          when: execute_motd
+
+        - name: Include Playbook for limits Settings
+          include_tasks: limits_conf.yml
+          when: execute_limits_conf
+
+        - name: Include Playbook for login.defs Settings
+          include_tasks: login_defs.yml
+          when: execute_login_defs
+
+        - name: Include Playbook for cloud.cfg Settings
+          include_tasks: cloud_cfg.yml
+          when: execute_cloud_cfg
+
+        - name: Include Playbook to add auditd rules
+          include_tasks: add_auditd_rules.yml
+          when: execute_auditd_rules
+
+        - name: Include Playbook to start services
+          include_tasks: services.yml
+          when: execute_services

@@ -1,0 +1,8 @@
+---
+- name: Execute playbook for MQ Installation
+  hosts: group2
+  gather_facts: false
+  become: true
+  tasks:
+        - name: change mqm home directory
+          shell: rm -Rf /home/mqm;usermod --home /var/mqm mqm

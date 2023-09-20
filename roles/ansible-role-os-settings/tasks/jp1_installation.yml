@@ -1,0 +1,41 @@
+---
+- name: Install libns1
+  shell: yum -y install libnsl.i686
+  register: libns1_pkg
+
+- name: Install libnsl so
+  shell: yum install /lib64/libnsl.so.1
+  register: libns1_so_pkg
+
+- name: Download JP1 from S3
+  shell: aws s3 cp s3://t-ln-it2-s3-shared-internal/ijdi/cloud-kikaku/DWXA4B3V11.iso /tmp
+  register: jp1_download
+
+- name: Verify if DWXA4B3V11.iso is downloaded
+  stat:
+    path: /tmp/DWXA4B3V11.iso
+  register: iso_file
+  when: jp1_download.rc == 0
+- debug: iso_file
+
+- name: Create directory
+  file:
+    state: directory
+    path: /mnt/iso
+  register: create_mount_dir
+  when: iso_file.stat.exists
+
+- name: Verify if Mount point exists
+  stat:
+    path: /mnt/iso
+  register: mount_dir
+  when: iso_file.stat.exists
+
+- name: Mount ISO
+  shell: mount -t iso9660 -o loop /tmp/DWXA4B3V11.iso /mnt/iso/
+  register: mount_iso
+  when: mount_dir.stat.exists and mount_dir.stat.isdir == true
+
+- name: Setup JP1
+  shell: /mnt/iso/linux/setup /mnt/iso
+

@@ -1,0 +1,111 @@
+---
+- name: Verify /etc/ssh/sshd_config exists
+  stat:
+    path: /etc/ssh/sshd_config
+  register: sshd_conf
+
+- name: Backup /etc/ssh/sshd_config
+  shell: cp /etc/ssh/sshd_config /etc/ssh/sshd_config_{{ date }}
+  register: backup_sshd_conf
+  when: sshd_conf.stat.exists
+
+- name: Replace "PermitRootLogin"
+  lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regexp: '(^PermitRootLogin.*)'
+    line: 'PermitRootLogin without-password'
+    backrefs: yes
+    state: present
+  when: sshd_conf.stat.exists
+
+- name: Replace "PasswordAuthentication"
+  lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regexp: '(^PasswordAuthentication.*)'
+    line: 'PasswordAuthentication yes'
+    backrefs: yes
+    state: present
+  when: sshd_conf.stat.exists
+
+- name: Replace "SyslogFacility"
+  lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regexp: '(^SyslogFacility.*)'
+    line: 'SyslogFacility AUTHPRIV'
+    backrefs: yes
+    state: present
+  when: sshd_conf.stat.exists
+
+- name: Add "Ciphers"
+  lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regexp: '^# Please.*'
+    insertafter: '# Please.*'
+    line: 'Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-gcm@openssh.com,aes256-gcm@openssh.com,chacha20-poly1305@openssh.com'
+    state: present
+  when: sshd_conf.stat.exists
+
+- name: Verify /etc/sysconfig/sshd exists
+  stat:
+    path: /etc/sysconfig/sshd
+  register: sshd_file
+
+- name: Backup /etc/sysconfig/sshd
+  shell: cp /etc/sysconfig/sshd /etc/sysconfig/sshd_{{ date }}
+  register: backup_sshd_file
+  when: sshd_file.stat.exists
+
+- name: Replace "CRYPTO_POLICY"
+  lineinfile:
+    path: "/etc/sysconfig/sshd"
+    regexp: '(^# CRYPTO_POLICY=.*)'
+    line: 'CRYPTO_POLICY='
+    backrefs: yes
+    state: present
+  when: sshd_file.stat.exists
+  
+# Section 2-13
+- name: Verify /etc/ssh/ssh_config
+  stat:
+    path: /etc/ssh/ssh_config
+  register: etc_ssh_ssh_config
+  
+- name: Backup /etc/ssh/ssh_config
+  shell: cp /etc/ssh/ssh_config /etc/ssh/ssh_config_{{ date }}
+  register: backup_etc_ssh_ssh_config
+  when: etc_ssh_ssh_config.stat.exists
+  
+- name: Replace "StrictHostKeyChecking"
+  lineinfile:
+    path: "/etc/ssh/ssh_config"
+    regexp: '(^#   StrictHostKeyChecking ask)'
+    line: 'StrictHostKeyChecking no'
+    backrefs: yes
+    state: present
+  when: etc_ssh_ssh_config.stat.exists
+  
+# Remove LANGUAGE from SendEnv parameter
+- name: Verify /etc/ssh/ssh_config.d/05-redhat.conf exists
+  stat:
+    path: /etc/ssh/ssh_config.d/05-redhat.conf
+  register: v_05_redhat_conf
+  
+- name: Backup /etc/ssh/ssh_config.d/05-redhat.conf
+  shell: cp /etc/ssh/ssh_config.d/05-redhat.conf /etc/ssh/ssh_config.d/05-redhat.conf_{{ date }}
+  register: backup_05_redhat_conf
+  when: v_05_redhat_conf.stat.exists
+  
+- name: Remove LANGUAGE from SendEnv parameter
+  lineinfile:
+    path: "/etc/ssh/ssh_config.d/05-redhat.conf"
+    regexp: '(SendEnv LC_IDENTIFICATION LC_ALL LANGUAGE.*)'
+    line: '        SendEnv LC_IDENTIFICATION LC_ALL'
+    backrefs: yes
+    state: present
+  when: v_05_redhat_conf.stat.exists
+  
+# Restart ssh service
+- name: Restart sshd service after making ssh related changes
+  service:
+    name: sshd
+    state: restarted

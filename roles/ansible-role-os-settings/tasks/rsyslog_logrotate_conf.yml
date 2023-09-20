@@ -1,0 +1,159 @@
+---
+- name: Verify /etc/rsyslog.conf exists
+  stat:
+    path: /etc/rsyslog.conf
+  register: rsyslog_conf
+
+- name: Backup /etc/rsyslog.conf
+  shell: cp /etc/rsyslog.conf /etc/rsyslog.conf_{{ date }}
+  register: backup
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "*.info;mail.none;authpriv.none;cron.none"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(info;mail.none;authpriv.none;cron.none.*)'
+    line: '*.info;mail.none;authpriv.none;cron.none                /var/log/messages;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "authpriv.*"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(^authpriv.*)'
+    line: 'authpriv.*                                              /var/log/secure;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "mail.*"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(^mail.*)'
+    line: 'mail.*                                                  -/var/log/maillog;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "cron.*"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(^cron.*)'
+    line: 'cron.*                                                  /var/log/cron;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "uucp,news.crit"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(^uucp,news.crit.*)'
+    line: 'uucp,news.crit                                          /var/log/spooler;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Replace "local7.*"
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    regexp: '(^local7.*)'
+    line: 'local7.*                                                /var/log/boot.log;std_tmpl'
+    backrefs: yes
+    state: present
+  when: rsyslog_conf.stat.exists
+
+- name: Check for template in rsyslog.conf
+  shell: cat /etc/rsyslog.conf | grep "template std_tmpl,.*"
+  register: templ_line
+  ignore_errors: true
+
+- name: Add template under #### RULES ####
+  lineinfile:
+    path: "/etc/rsyslog.conf"
+    insertafter: '#### RULES ####'
+    line: '$template std_tmpl,"%timegenerated% %hostname% %programname%: [%syslogpriority-text%]: %msg%\n"'
+    state: present
+  when: templ_line is failed
+ 
+- name: Check for syslog errors
+  shell: rsyslogd -N 1
+  register: compile_rsyslog
+  ignore_errors: true
+
+- debug:
+    msg: "{{ compile_rsyslog.stderr_lines }}"
+
+- name: Verify /etc/logrotate.conf exists
+  stat:
+    path: /etc/logrotate.conf
+  register: logrotate_conf
+
+- name: Backup /etc/logrotate.conf
+  shell: cp /etc/logrotate.conf /etc/logrotate.conf_{{ date }}
+  register: backup_log
+  when: logrotate_conf.stat.exists
+
+- name: Check for lines in logrotate.conf
+  shell: cat /etc/logrotate.conf | grep "{{ item }}"
+  with_items:
+    - /var/log/wtmp {
+    -     monthly
+    -     create 0664 root utmp
+    -     minsize 1M
+    -     rotate 1
+    - "}"
+    - /var/log/btmp {
+    -     missingok
+    -     monthly
+    -     create 0600 root utmp
+    -     rotate 1
+    - "}"
+  register: log_lines
+  ignore_errors: true
+  when: logrotate_conf.stat.exists
+     
+- name: Insert lines "/etc/logrotate.conf"
+  lineinfile:
+    path: "/etc/logrotate.conf"
+    insertafter: '# system-specific logs may be also be configured here.'
+    line: |
+     /var/log/wtmp {
+        monthly
+        create 0664 root utmp
+        minsize 1M
+        rotate 1
+     }
+     /var/log/btmp {
+        missingok
+        monthly
+        create 0600 root utmp
+        rotate 1
+     }
+    state: present
+  when: log_lines is failed and logrotate_conf.stat.exists
+
+- name: remove /etc/logrotate.d/wtmp and /etc/logrotate.d/btmp from /etc/logrotate.d
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - /etc/logrotate.d/btmp
+    - /etc/logrotate.d/wtmp
+  when: log_lines is failed and logrotate_conf.stat.exists
+
+- name: Verify /etc/logrotate.d/wtmp exists
+  stat:
+    path: /etc/logrotate.d/wtmp
+  register: wtmp_status
+  when: log_lines is failed and logrotate_conf.stat.exists
+- debug: var=wtmp_status.stat.exists
+  when: log_lines is failed and logrotate_conf.stat.exists
+
+- name: Verify /etc/logrotate.d/btmp exists
+  stat:
+    path: /etc/logrotate.d/btmp
+  register: btmp_status
+  when: log_lines is failed and logrotate_conf.stat.exists
+- debug: var=btmp_status.stat.exists
+  when: log_lines is failed and logrotate_conf.stat.exists

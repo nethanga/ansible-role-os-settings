@@ -1,0 +1,22 @@
+---
+- name: Verify /etc/motd exists
+  stat:
+    path: /etc/motd
+  register: motd_file
+
+- name: Backup /etc/motd
+  shell: cp /etc/motd /etc/motd_{{ date }}
+  register: backup_motd
+  when: motd_file.stat.exists
+
+- name: clear the contents of the file
+  shell: echo > /etc/motd
+  when: motd_file.stat.exists
+
+- name: add banner message
+  lineinfile:
+    path: "/etc/motd"
+    line: |
+      {{ motd_message }}
+    state: present
+  when: motd_file.stat.exists

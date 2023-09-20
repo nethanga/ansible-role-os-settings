@@ -1,0 +1,35 @@
+---
+- service_facts:
+
+- name: Start and Enable 
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  when: "item in service_names"
+  loop: "{{ start_services }}"
+  vars:
+    service_names: "{{ services|dict2items|map(attribute='value.name')|list }}"
+  register: enable_process
+  ignore_errors: true
+  #- debug:
+  # msg: "{{ item.msg }}"
+  #  when: item.failed
+  #with_items: "{{ enable_process.results }}"
+
+
+- name: Stop and Disable services
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  when: "item in service_names"
+  loop: "{{ stop_services }}"
+  vars:
+    service_names: "{{ services|dict2items|map(attribute='value.name')|list }}"
+  register: disable_process
+  ignore_errors: true
+  #- debug:
+  # msg: "{{ item.msg }}"
+  #  when: item.failed
+  #with_items: "{{ disable_process.results }}"

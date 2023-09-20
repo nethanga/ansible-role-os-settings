@@ -1,0 +1,116 @@
+---
+- name: Execute playbook for MQ Installation
+  hosts: group2
+  gather_facts: false
+  become: true
+  tasks:
+    - block:
+        - name: Get date
+          shell: echo `date +%d%m%Y`
+          register: date
+
+        - name: Get hostname
+          command: hostname
+          register: host_name
+
+        - name: Set date variable
+          set_fact:
+            hostname: "{{ host_name.stdout_lines[0] }}"
+            date: "{{ date.stdout_lines[0] }}"
+        - debug:
+            msg:
+              - "Hostname : {{ hostname }}"
+              - "Date : {{ date }}"
+
+        - name: Create /var/tmp/mq Directory
+          file:
+            state: directory
+            path: "/var/tmp/mq/{{ date }}"
+            mode: '0755'
+
+        - name: Verify /var/tmp/mq Directory
+          stat:
+            path: "/var/tmp/mq/{{ date }}"
+          register: var_mqm_dir
+        
+        - name: Verify if IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz is present
+          stat:
+            path: "/var/tmp/mq/{{ date }}/IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz"
+          register: pre_mq_gz
+        
+        - name: Download MQ from S3
+          shell: scp /tmp/IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz  /var/tmp/mq/{{ date }}
+          register: mq_download
+          when: not pre_mq_gz.stat.exists 
+        
+        - name: Verify if IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz is downloaded
+          stat:
+            path: "/var/tmp/mq/{{ date }}/IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz"
+          register: mq_gz
+          when: not pre_mq_gz.stat.exists and  mq_download.rc == 0
+        - debug: var=mq_gz.stat.path
+        
+        - name: Check for mqm group
+          shell: grep mqm /etc/group
+          register: mqm_group
+          when: pre_mq_gz.stat.exists or mq_gz.stat.exists
+
+        - name: Create mqm group if not exists
+          shell: groupadd -g 502 mqm
+          register: add_mqm_group
+          when: mqm_group.rc != 0
+
+        - name: Check for mqm user
+          shell: getent passwd mqm
+          register: mqm_user
+          when: mqm_group.rc == 0 or add_mqm_group.rc == 0
+
+        - name: Create mqm user
+          shell: useradd -u 502 -g mqm mqm
+          register: add_mqm_user
+          when: mqm_user.rc != 0
+
+        - name: verify mqm user post creation
+          shell: getent passwd mqm
+          register: post_add_mqm_user
+          when: add_mqm_user is succeeded
+
+        - name: Extract IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz
+          unarchive:
+            src: "/var/tmp/mq/{{ date }}/IBM_MQ_9.2.0.2_LINUX_X86-64.tar.gz"
+            dest: "/var/tmp/mq/{{ date }}"
+            remote_src: yes
+          register: extract_mq
+          when: var_mqm_dir.stat.exists and var_mqm_dir.stat.isdir == true
+
+
+#setup starting from here
+        - name: Execute mqlicense.sh and accept licence
+          shell: /var/tmp/mq/{{ date }}/MQServer/mqlicense.sh -accept
+          register: script_license
+          when: extract_mq is succeeded
+        - debug: var=script_license.stdout_lines
+ 
+        - name: Install MQSeries rpm packages
+          shell: cd /var/tmp/mq/{{ date }}/MQServer; rpm -ivh MQSeries*.rpm
+          register: install_mqs
+          when: script_license is search('Proceed with install')
+
+        - name: Check MQ Version
+          shell: /opt/mqm/bin/dspmqver
+          register: mq_version
+          when: script_license is search('Proceed with install')
+        - debug: var=mq_version.stdout_lines
+
+        - name: Set Installation to be primary
+          shell: /opt/mqm/bin/setmqinst -i -p /opt/mqm
+          register: set_mq_primary
+          when: script_license is search('Proceed with install')
+        - debug: var=set_mq_primary.stdout_lines
+
+        - name: Check MQ Version Post
+          shell: /opt/mqm/bin/dspmqver
+          register: post_mq_version
+          when: set_mq_primary is succeeded
+        - debug: var=post_mq_version.stdout_lines
+      ignore_errors: true	

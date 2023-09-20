@@ -1,0 +1,79 @@
+---
+- name: Playbook for User creation
+  hosts: localhost
+  become: true
+  vars_prompt:
+    - name: USER_PASSWORD
+      prompt: Enter Common Default Password for all Users
+  vars_files:
+    - ./variables.yml
+  tasks:
+# Below Task is to create group "TC_UNIX"
+    - name: Create Group TC_UNIX
+      group:
+        name: "{{ item.group }}"
+        state: present
+      with_items: "{{ user_details }}"
+
+    - name: Remove Existing User
+      shell: userdel -r "{{ item.name }}"
+      register: del_users
+      with_items: "{{ user_details }}"
+      ignore_errors: true
+
+# Below Task is to add users with all options(uid/label/homedir/shell)
+    - name: Create Users and add to group
+      shell: useradd -u "{{ item.uid }}" -G "{{ item.group }}" -c "{{ item.label }}" -d "/home/{{ item.name }}" -s "{{ item.shell }}" -m "{{ item.name }}"
+      register: add_users
+      with_items: "{{ user_details }}"
+      ignore_errors: true
+
+# Below Task is to verify the created users in password file
+    - name: Check users in Passwd file
+      shell: cat /etc/passwd |egrep "{{ item.name }}"
+      with_items: "{{ user_details }}"
+      register: user_passwd
+    - debug:
+        msg: "{{ item }}"
+      with_items: "{{ user_passwd.results|map(attribute='stdout_lines')|list }}"
+
+# Below Task is to set the initial password for created user's
+    - name: Set initial password for User's
+      user:
+        name: "{{ item.name }}"
+        password: "{{ USER_PASSWORD | password_hash('sha512') }}"
+      register: update_passwd
+      with_items: "{{ user_details }}"
+      when: add_users is succeeded
+
+# Below Task is to check for created user's home directory
+    - name: Check for User's home directory
+      shell: ls -ld "/home/{{ item.name }}"
+      with_items: "{{ user_details }}"
+      register: home_dir
+      when: user_passwd is succeeded
+    - debug:
+        msg: "{{ item }}"
+      with_items: "{{ home_dir.results|map(attribute='stdout_lines')|list }}"
+
+# Below Task is to change the permission of created user's home directory
+    - name: Change permission of User's home directory
+      file:
+        path: "/home/{{ item.name }}"
+        mode: '0700'
+        state: directory
+        recurse: yes
+      with_items: "{{ user_details }}"
+      register: home_dir_permission
+      when: user_passwd is succeeded
+
+# Below Task is to check for created user's home directory post changing the permission
+    - name: Check for User's home directory
+      shell: ls -ld "/home/{{ item.name }}"
+      with_items: "{{ user_details }}"
+      register: home_dir_mode
+      when: user_passwd is succeeded
+    - debug:
+        msg: "{{ item }}"
+      with_items: "{{ home_dir_mode.results|map(attribute='stdout_lines')|list }}"
+

@@ -1,0 +1,41 @@
+---
+- name: Set HostName
+  set_fact:
+    host_packages: "{{ inventory_hostname }}_packages"
+- debug: var=host_packages
+
+- name: Show value of 'host_packages'
+  set_fact:
+    custom_packages: "{{ lookup('vars', host_packages )}}"
+- debug: var=custom_packages
+
+- name: Install AMI Packages
+  shell: yum install -y "{{ item }}"
+  with_items:
+    - "{{ AMI_packages }}"
+  when: create_AMI==true
+
+- name: Update polkit package
+  shell: yum update -y polkit
+  when: create_AMI==true
+
+- name: Install Group1 Packages
+  shell: yum install -y "{{ item }}"
+  with_items:
+    - "{{ group1_packages }}"
+  register: group1_pkg
+  when: inventory_hostname in groups['group1'] and build_EC2==true
+
+- name: Install Group2 Packages
+  shell: yum install -y "{{ item }}"
+  with_items:
+    - "{{ group2_packages }}"
+  register: group2_pkg
+  when: inventory_hostname in groups['group2'] and build_EC2==true
+
+- name: Install Custom Packages
+  shell: yum install -y "{{ item }}"
+  with_items:
+    - "{{ custom_packages }}"
+  register: custom_pkg
+  when: (custom_packages is defined and custom_packages|length > 0) and build_EC2==true

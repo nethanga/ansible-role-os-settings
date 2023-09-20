@@ -1,0 +1,73 @@
+---
+- name: create partition
+  parted:
+    device: "{{ device_nvme2n1 }}" #param
+    number: 1
+    label: "gpt"
+    part_start: "0%"
+    part_end: "100%"
+    name: "data2"
+    state: "present"
+
+- name: task for creating volume group
+  lvg:
+    vg: "{{ vg_nvme2n1 }}"  #param
+    pvs: "{{ pv_nvme2n1 }}"   #param
+    pesize: "{{ pesize_nvme2n1 }}"  #param
+
+- name: Check if LV {{ lv_nvme2n1 }} is present
+  shell: lvs --noheadings -o devices '/dev/mapper/{{ vg_nvme2n1 }}-{{ lv_nvme2n1 }}' | sed 's/^ *//'
+  register: lvm_wls_dump
+
+- name: task for creating logical volume wls_dump
+  lvol:
+    vg: "{{ vg_nvme2n1 }}"  #param
+    lv: "{{ lv_nvme2n1 }}"  #param
+    size: 100%FREE
+    force: yes
+  when: not lvm_wls_dump.stdout|length > 0
+
+- name: Create directory {{ mountpoint }} if does not exist
+  file:
+    path: "{{ mountpoint }}"  #param
+    state: directory
+    mode: '0755'
+  when: not lvm_wls_dump.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/{{ vg_nvme2n1 }}/{{ lv_nvme2n1 }}
+  when: not lvm_wls_dump.stdout|length > 0
+
+- name: Get UUID of 
+  shell: blkid /dev/{{ vg_nvme2n1 }}/{{ lv_nvme2n1 }} | awk '{print $2}' | xargs
+  register: uuid_wls_dump
+  when: not lvm_wls_dump.stdout|length > 0
+
+- name: mount the lv on {{ mountpoint }}
+  mount:
+    path: "{{ mountpoint }}"
+    src: "{{ uuid_wls_dump.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_wls_dump.stdout|length > 0
+
+- name: Reboot the system
+  shell: "sleep 5 && reboot"
+  register: reboot
+  async: 900
+  poll: 0
+
+- name: Wait for the reboot to complete
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 35
+    timeout: 600
+
+- name: Check Hostname and uptime
+  shell: hostname;uptime
+  register: check_uptime
+- debug: var=check_uptime.stdout_lines
+

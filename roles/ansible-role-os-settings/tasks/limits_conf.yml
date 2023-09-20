@@ -1,0 +1,25 @@
+---
+- name: Verify /etc/security/limits.conf exists
+  stat:
+    path: /etc/security/limits.conf
+  register: limits_conf
+
+- name: Backup /etc/security/limits.conf
+  shell: cp /etc/security/limits.conf /etc/security/limits.conf_{{ date }}
+  register: backup_limits_conf
+  when: limits_conf.stat.exists
+
+- name: Check entries in limits.conf
+  shell: cat /etc/security/limits.conf | grep "weblogic"
+  register: lim_lin
+  ignore_errors: true
+  when: limits_conf.stat.exists
+
+- name: Insert lines "/etc/security/limits.conf"
+  lineinfile:
+    path: "/etc/security/limits.conf"
+    insertbefore: '# End of file'
+    line: |
+      {{ limits_conf_entry }}
+    state: present
+  when: lim_lin is failed and limits_conf.stat.exists

@@ -1,0 +1,47 @@
+---
+- name: Verify /etc/cloud/cloud.cfg exists
+  stat:
+    path: /etc/cloud/cloud.cfg
+  register: cloud_cfg
+
+- name: Backup /etc/cloud/cloud.cfg
+  shell: cp /etc/cloud/cloud.cfg /etc/cloud/cloud.cfg_{{ date }}
+  register: backup_cloud_cfg
+  when: cloud_cfg.stat.exists
+
+- name: Replace "ssh_pwauth"
+  lineinfile:
+    path: "/etc/cloud/cloud.cfg"
+    regexp: '(^ssh_pwauth.*)'
+    line: 'ssh_pwauth:   1'
+    backrefs: yes
+    state: present
+  when: cloud_cfg.stat.exists
+
+- name: Comment "locale"
+  lineinfile:
+    path: "/etc/cloud/cloud.cfg"
+    regexp: '(- locale.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present
+  when: cloud_cfg.stat.exists
+
+- name: Comment "timezone"
+  lineinfile:
+    path: "/etc/cloud/cloud.cfg"
+    regexp: '(- timezone.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present
+  when: cloud_cfg.stat.exists
+
+- name: Comment "ssh"
+  lineinfile:
+    path: "/etc/cloud/cloud.cfg"
+    regexp: '(- ssh$)'
+    line: '# \1'
+    backrefs: yes
+    state: present
+  when: cloud_cfg.stat.exists
+

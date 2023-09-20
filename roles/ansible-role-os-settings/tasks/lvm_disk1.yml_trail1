@@ -1,0 +1,103 @@
+---
+- name: create partition
+  parted:
+    device: "{{ device_nvme1n1 }}" #param
+    number: 1
+    label: "gpt"
+    part_start: "0%"
+    part_end: "100%"
+    name: "data"
+    state: "present"
+
+- name: task for creating volume group
+  lvg:
+    vg: vg_data1
+    pvs: "{{ pv_nvme1n1 }}"   #param
+    pesize: "{{ pesize_nvme1n1 }}"  #param
+  when: ansible_lvm['vgs']['vg_data1'] is not defined
+
+- name: Check if Swap is already present
+  shell: swapon -s
+  register: swap_mount
+
+- name: task for creating logical volume Swap
+  lvol:
+    vg: vg_data1
+    lv: lv_swap
+    size: "{{ lv_swap_nvme1n1 }}"      #param
+    force: yes
+  when: not swap_mount.stdout|length > 0
+
+- name: Make Swap
+  shell: mkswap /dev/vg_data1/lv_swap
+  register: mk_swap
+  when: not swap_mount.stdout|length > 0
+
+- name: Mount Swap
+  shell: swapon -v /dev/vg_data1/lv_swap
+  register: enable_swap
+  when: not swap_mount.stdout|length > 0
+
+- name: Check if LV trail1 is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_trail1' | sed 's/^ *//'
+  register: lvm_trail1
+
+- name: task for creating logical volume trail1
+  lvol:
+    vg: vg_data1
+    lv: lv_trail1
+    size: 100%FREE
+    force: yes
+  when: not lvm_trail1.stdout|length > 0
+
+- name: Create directory trail1 if does not exist
+  file:
+    path: /trail1
+    state: directory
+    mode: '0755'
+  when: not lvm_trail1.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_trail1
+  when: not lvm_trail1.stdout|length > 0
+
+- name: Write swap entry in fstab
+  mount: name=swap
+         src=/dev/vg_data1/lv_swap
+         fstype=swap
+         state=present
+  when: not swap_mount.stdout|length > 0
+
+- name: Get UUID of lv_trail1
+  shell: blkid /dev/vg_data1/lv_trail1 | awk '{print $2}' | xargs
+  register: uuid_trail1
+  when: not lvm_trail1.stdout|length > 0
+
+- name: mount the lv on /trail1
+  mount:
+    path: /trail1
+    src: "{{ uuid_trail1.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_trail1.stdout|length > 0
+
+- name: Reboot the system
+  shell: "sleep 5 && reboot"
+  register: reboot
+  async: 900
+  poll: 0
+
+- name: Wait for the reboot to complete
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 35
+    timeout: 600
+
+- name: Check Hostname and uptime
+  shell: hostname;uptime
+  register: check_uptime
+- debug: var=check_uptime.stdout_lines
+

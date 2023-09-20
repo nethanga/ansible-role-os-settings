@@ -1,0 +1,160 @@
+---
+# defaults file for ansible-role-os-settings
+
+execute_os_general_settings: no
+execute_sshd_config: no
+execute_grub_conf: no
+execute_sysctl_yum_conf: no
+execute_rsyslog_logrotate_conf: no
+execute_package_installation: no
+execute_motd: no
+execute_limits_conf: no
+execute_login_defs: no
+execute_cloud_cfg: no
+execute_sudoers: no
+execute_auditd_rules: no
+
+execute_services: no
+execute_lvm_disk1: no
+execute_lvm_disk2: no
+execute_lvm_disk3: yes
+execute_user_creation: no
+
+create_AMI: true
+build_EC2: true
+
+AMI_packages:
+  - https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm               #this repo needs to be installed to install sshpass package
+  - bc-1.07.1-5.el8.x86_64
+  - bind-utils-32:9.11.26-6.el8.x86_64
+  - cifs-utils-6.8-3.el8.x86_64
+  - cronie-1.5.2-4.el8.x86_64
+  - expect-5.45.4-5.el8.x86_64
+  - fence-agents-kdump-4.2.1-75.el8.x86_64
+  - ftp-0.17-78.el8.x86_64
+  - glibc-locale-source-2.28-151.el8.x86_64
+  - kexec-tools-2.0.20-34.el8_3.2.x86_64
+  - lftp-4.8.4-2.el8.x86_64
+  - lsof-4.93.2-1.el8.x86_64
+  - langpacks-ja-1.0-12.el8
+  - ncompress-4.2.4.4-13.el8.x86_64
+  - net-snmp-1:5.8-22.el8.x86_64
+  - net-snmp-libs-1:5.8-22.el8.x86_64
+  - net-snmp-utils-1:5.8-22.el8.x86_64
+  - net-tools-2.0-0.52.20160912git.el8.x86_64
+  - nmap-ncat-2:7.70-6.el8.x86_64
+  - portreserve-0.0.5-19.el8.x86_64
+  - sos-4.1-5.el8
+  - strace-5.7-3.el8.x86_64
+  - sysstat-11.7.3-6.el8.x86_64
+  - tcpdump-14:4.9.3-2.el8.x86_64
+  - tk-1:8.6.8-1.el8.x86_64
+  - traceroute-3:2.1.0-6.el8.x86_64
+  - wget-1.19.5-10.el8.x86_64
+  - vsftpd-3.0.3-34.el8.x86_64
+  - zip-3.0-23.el8
+  - libnsl-2.28-151.el8.x86_64
+  - lvm2-8:2.03.12-10.el8   
+
+
+# Variables of Packages
+group1_packages:
+  - cifs-utils-6.8-3.el8.x86_64
+  - lftp-4.8.4-2.el8.x86_64
+
+group2_packages:
+  - man-pages-4.15-6.el8
+  - xfsdump-3.1.8-2.el8.x86_64
+
+lkpird01.p-ln-svc_packages:
+ - https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm               #this repo needs to be installed to install sshpass package
+ - binutils-2.30-108.el8_5.1.x86_64
+ - glibc-2.28-151.el8.i686
+ - glibc-2.28-151.el8.x86_64
+ - glibc-devel-2.28-151.el8.i686
+ - glibc-devel-2.28-151.el8.x86_64
+ - ksh-20120801-254.el8.x86_64
+ - libaio-0.3.112-1.el8.i686
+ - libaio-0.3.112-1.el8.x86_64
+ - libaio-devel-0.3.112-1.el8.i686
+ - libaio-devel-0.3.112-1.el8.x86_64
+ - libX11-1.6.8-5.el8.i686
+ - libX11-1.6.8-5.el8.x86_64
+ - libXau-1.0.9-3.el8.i686
+ - libXau-1.0.9-3.el8.x86_64
+ - libXi-1.7.10-1.el8.i686
+ - libXi-1.7.10-1.el8.x86_64
+ - libXtst-1.2.3-7.el8.i686
+ - libXtst-1.2.3-7.el8.x86_64
+ - libgcc-8.5.0-4.el8_5.i686                       
+ - libgcc-8.5.0-4.el8_5.x86_64                     #8.3.1-5.1.el8 found in lktbat01      
+ - libstdc++-8.5.0-4.el8_5.x86_64     #it will install both versions x86_64 and i686
+ - libstdc++-devel-8.5.0-4.el8_5.i686
+ - libstdc++-devel-8.5.0-4.el8_5.x86_64
+ - libxcb-1.13.1-1.el8.i686
+ - libxcb-1.13.1-1.el8.x86_64
+ - libnsl-2.28-151.el8.x86_64
+ - libnsl-2.28-151.el8.i686
+ - make-1:4.2.1-10.el8.x86_64
+ - ncompress-4.2.4.4-13.el8.x86_64                   #not found in lktbat01  
+ - ncurses-6.1-7.20180224.el8.x86_64
+ - nfs-utils-1:2.3.3-46.el8.x86_64
+ - psmisc-23.1-5.el8.x86_64
+ - smartmontools-1:7.1-1.el8.x86_64
+ - xfsdump-3.1.8-2.el8.x86_64
+ - xorg-x11-utils-7.5-28.el8
+ - xorg-x11-xauth-1:1.0.9-12.el8
+ - glibc-locale-source-2.28-151.el8.x86_64
+ - libXrender
+ - unzip-6.0-45.el8_4.x86_64
+ - elfutils-libelf-devel-0.182-3.el8.x86_64
+ - fontconfig-devel-2.13.1-3.el8.x86_64
+ - librdmacm-32.0-4.el8.x86_64
+ - libibverbs-32.0-4.el8.x86_64
+ - elfutils-libelf-0.182-3.el8.x86_64
+
+
+# Variables for Custom harddisk
+device_customlvm: /dev/nvme1n1
+pv_customlvm: /dev/nvme1n1p1
+pesize_customlvm: '32'
+lv_swap_customlvm: 16g
+lv_bits_customlvm: 60g
+lv_fra_customlvm: 142g
+lv_redo_customlvm: 84g
+lv_trail_customlvm: 56g
+pv_nvme1n1p2: /dev/nvme1n1p2
+
+# Variables for limits entry
+limits_conf_entry: |
+  oracle          soft    nofile          1024
+  oracle          hard    nofile          65536
+  oracle          soft    nproc           16384
+  oracle          hard    nproc           16384
+  oracle          soft    memlock         134217728
+  oracle          hard    memlock         134217728
+  oracle          soft    stack           10240
+  oracle          hard    stack           32768
+
+# Variables for Services
+start_services:
+  - snmpd.service
+  - vsftpd.service
+  - nfs-server
+  - irqbalance.service
+
+
+# Variable for motd
+motd_message: |
+           *******************************************************************************
+           *                                                                             *
+           *                                                                             *
+           *  This system must only be used for conducting IJDI's business or            *
+           *  for purposes authorized by IJDI management.                                *
+           *                                                                             *
+           *                                                                             *
+           *******************************************************************************
+
+group2_sudoers: 'ndpx_dev  ALL=(ALL)       NOPASSWD: ALL'
+
+group1_sudoers: 'ln_dev  ALL=(ALL)       NOPASSWD: ALL'

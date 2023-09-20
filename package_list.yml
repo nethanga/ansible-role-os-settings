@@ -1,0 +1,32 @@
+---
+- name: Execute playbook to check packages
+  hosts: revo-prod
+  gather_facts: false
+  become: true
+  tasks:
+    - name: check below package list
+      shell: "{{ item }}"
+      with_items:
+        -  bc
+        -  compat-libcap1
+        -  compat-libstdc++-33
+        -  compat-libstdc++-33
+        -  cvs
+        -  ksh
+        -  libaio-devel
+        -  libdmx
+        -  libXmu
+        -  libXt
+        -  libXv
+        -  libXxf86dga
+        -  libXxf86misc
+        -  smartmontools
+        -  xorg-x11-utils
+        -  xorg-x11-xauth
+        -  elfutils-libelf-devel
+        -  fontconfig-devel
+        -  libnsl
+        -  librdmacm
+        -  libibverbs
+      register: installed_pkg
+    - debug: var=installed_pkg 

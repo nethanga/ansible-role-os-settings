@@ -1,0 +1,264 @@
+---
+- name: create primary partition
+  parted:
+    device: "{{ device_customlvm }}" #param
+    number: 1
+    label: "gpt"
+    part_start: "1026MiB"
+    part_end: "100%"
+    name: "data"
+    state: "present"
+
+- name: create snapshot partition
+  parted:
+    device: "{{ device_customlvm }}" #param
+    number: 2
+    label: "gpt"
+    part_start: "0%"
+    part_end: "1025MiB"
+    name: "snapshot"
+    state: "present"
+
+- name: task for creating volume group
+  lvg:
+    vg: vg_data1
+    pvs: "{{ pv_customlvm }}"   #param
+    pesize: "{{ pesize_customlvm }}"  #param
+
+- name: Check if Swap is already present
+  shell: swapon -s
+  register: swap_mount
+
+- name: task for creating logical volume Swap
+  lvol:
+    vg: vg_data1
+    lv: lv_swap
+    size: "{{ lv_swap_customlvm }}"      #param
+    force: yes
+  when: not swap_mount.stdout|length > 0
+
+- name: Make Swap
+  shell: mkswap /dev/vg_data1/lv_swap
+  register: mk_swap
+  when: not swap_mount.stdout|length > 0
+
+- name: Mount Swap
+  shell: swapon -v /dev/vg_data1/lv_swap
+  register: enable_swap
+  when: not swap_mount.stdout|length > 0
+
+- name: Check if LV lv_bits is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_bits' | sed 's/^ *//'
+  register: lvm_bits
+
+- name: task for creating logical volume bits
+  lvol:
+    vg: vg_data1
+    lv: lv_bits
+    size: "{{ lv_bits_customlvm }}"
+    force: yes
+  when: not lvm_bits.stdout|length > 0
+
+- name: Create directory u01 if does not exist
+  file:
+    path: /u01
+    state: directory
+    mode: '0755'
+  when: not lvm_bits.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_bits
+  when: not lvm_bits.stdout|length > 0
+
+- name: Get UUID of lv_bits
+  shell: blkid /dev/vg_data1/lv_bits | awk '{print $2}' | xargs
+  register: uuid_bits
+  when: not lvm_bits.stdout|length > 0
+
+- name: mount the lv on /u01
+  mount:
+    path: /u01
+    src: "{{ uuid_bits.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_bits.stdout|length > 0
+
+- name: Check if LV lv_fra is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_fra' | sed 's/^ *//'
+  register: lvm_fra
+
+- name: task for creating logical volume fra
+  lvol:
+    vg: vg_data1
+    lv: lv_fra
+    size: "{{ lv_fra_customlvm }}"
+    force: yes
+  when: not lvm_fra.stdout|length > 0
+
+- name: Create directory u03 if does not exist
+  file:
+    path: /u03
+    state: directory
+    mode: '0755'
+  when: not lvm_fra.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_fra
+  when: not lvm_fra.stdout|length > 0
+
+- name: Get UUID of lv_fra
+  shell: blkid /dev/vg_data1/lv_fra | awk '{print $2}' | xargs
+  register: uuid_fra
+  when: not lvm_fra.stdout|length > 0
+
+- name: mount the lv on /u03
+  mount:
+    path: /u03
+    src: "{{ uuid_fra.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_fra.stdout|length > 0
+
+- name: Check if LV lv_redo is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_redo' | sed 's/^ *//'
+  register: lvm_redo
+
+- name: task for creating logical volume redo
+  lvol:
+    vg: vg_data1
+    lv: lv_redo
+    size: "{{ lv_redo_customlvm }}"
+    force: yes
+  when: not lvm_redo.stdout|length > 0
+
+- name: Create directory u04 if does not exist
+  file:
+    path: /u04
+    state: directory
+    mode: '0755'
+  when: not lvm_redo.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_redo
+  when: not lvm_redo.stdout|length > 0
+
+- name: Get UUID of lv_redo
+  shell: blkid /dev/vg_data1/lv_redo | awk '{print $2}' | xargs
+  register: uuid_redo
+  when: not lvm_redo.stdout|length > 0
+
+- name: mount the lv on /u04
+  mount:
+    path: /u04
+    src: "{{ uuid_redo.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_redo.stdout|length > 0
+
+- name: Check if LV lv_trail is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_trail' | sed 's/^ *//'
+  register: lvm_trail
+
+- name: task for creating logical volume trail
+  lvol:
+    vg: vg_data1
+    lv: lv_trail
+    size: "{{ lv_trail_customlvm }}"
+    force: yes
+  when: not lvm_trail.stdout|length > 0
+
+- name: Create directory u05 if does not exist
+  file:
+    path: /u05
+    state: directory
+    mode: '0755'
+  when: not lvm_trail.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_trail
+  when: not lvm_trail.stdout|length > 0
+
+- name: Get UUID of lv_trail
+  shell: blkid /dev/vg_data1/lv_trail | awk '{print $2}' | xargs
+  register: uuid_trail
+  when: not lvm_trail.stdout|length > 0
+
+- name: mount the lv on /u05
+  mount:
+    path: /u05
+    src: "{{ uuid_trail.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_trail.stdout|length > 0
+
+- name: Check if LV lv_data is present
+  shell: lvs --noheadings -o devices '/dev/mapper/vg_data1-lv_data' | sed 's/^ *//'
+  register: lvm_data
+
+- name: task for creating logical volume data
+  lvol:
+    vg: vg_data1
+    lv: lv_data
+    size: 100%FREE
+    force: yes
+  when: not lvm_data.stdout|length > 0
+
+- name: Create directory u02 if does not exist
+  file:
+    path: /u02
+    state: directory
+    mode: '0755'
+  when: not lvm_data.stdout|length > 0
+
+- name: format the xfs filesystem
+  filesystem:
+    fstype: xfs
+    dev: /dev/vg_data1/lv_data
+  when: not lvm_data.stdout|length > 0
+
+- name: Get UUID of lv_data
+  shell: blkid /dev/vg_data1/lv_data | awk '{print $2}' | xargs
+  register: uuid_data
+  when: not lvm_data.stdout|length > 0
+
+- name: mount the lv on /u02
+  mount:
+    path: /u02
+    src: "{{ uuid_data.stdout }}"
+    fstype: xfs
+    state: mounted
+  when: not lvm_data.stdout|length > 0
+
+- name: task to extend volume group
+  shell: vgextend vg_data1 "{{ pv_nvme1n1p2 }}"
+  register: ext_vg
+
+- name: Reload Daemon
+  shell: systemctl daemon-reload
+  register: daemon_reload
+
+#- name: Reboot the system
+#  shell: "sleep 5 && reboot"
+#  register: reboot
+#  async: 900
+#  poll: 0
+#
+#- name: Wait for the reboot to complete
+#  wait_for_connection:
+#    connect_timeout: 20
+#    sleep: 5
+#    delay: 35
+#    timeout: 600
+
+- name: Check Hostname and uptime
+  shell: hostname;uptime
+  register: check_uptime
+- debug: var=check_uptime.stdout_lines

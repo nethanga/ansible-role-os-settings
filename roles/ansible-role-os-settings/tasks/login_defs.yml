@@ -1,0 +1,19 @@
+---
+- name: Verify /etc/login.defs exists
+  stat:
+    path: /etc/login.defs
+  register: login_defs
+
+- name: Backup /etc/login.defs
+  shell: cp /etc/login.defs /etc/login.defs_{{ date }}
+  register: backup_login_defs
+  when: login_defs.stat.exists
+
+- name: Replace "PASS_MAX_DAYS"
+  lineinfile:
+    path: "/etc/login.defs"
+    regexp: '(^PASS_MAX_DAYS.*)'
+    line: 'PASS_MAX_DAYS   99999'
+    backrefs: yes
+    state: present
+  when: login_defs.stat.exists

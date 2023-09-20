@@ -1,0 +1,8 @@
+---
+- name: Execute role for server build automation Linux
+  hosts: group2
+  gather_facts: true
+  become: true
+  tasks:
+    - include_role:
+        name: ansible-role-os-settings

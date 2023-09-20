@@ -1,0 +1,59 @@
+---
+# Variables for harddisk1
+device_nvme1n1: /dev/xvdf
+pv_nvme1n1: /dev/xvdf1
+pesize_nvme1n1: 4
+lv_swap_nvmeln1: 8g
+
+# Variables for limits entry
+limits_conf_entry: |
+  weblogic        soft      nproc      8192
+  weblogic        hard      nproc      8192
+
+# Variables for Services
+start_services:
+  - chronyd.service
+  - rsyslog.service
+
+# Variables for User
+user_details:
+  - {name: 'nelson', group: 'TC_UNIX', uid: '19034', label: '760/I/BB11FM/Kyndryl/Nelson Thangaraj', shell: '/bin/bash'}
+  - {name: 'shaminder', group: 'TC_UNIX', uid: '19014', label: '760/I/BB0Y0A/Kyndryl/Shaminder', shell: '/bin/bash'}
+    
+# Variables for common packages
+#common_packages:
+#  - bc.x86_64
+#  - bind-utils.x86_64
+#  - cronie.x86_64
+#  - expect.x86_64
+#  - fence-agents-kdump.x86_64
+#  - ftp.x86_64
+#  - kexec-tools.x86_64
+#  - lsof.x86_64
+#  - ncompress.x86_64
+#  - net-snmp.x86_64
+#  - net-snmp-libs.x86_64
+#  - net-tools.x86_64
+#  - nmap-ncat.x86_64
+#  - portreserve.x86_64
+#  - sos.noarch
+#  - strace.x86_64
+#  - sysstat.x86_64
+#  - tcpdump.x86_64
+#  - tk.x86_64
+#  - traceroute.x86_64
+#  - wget.x86_64
+#  - vsftpd.x86_64
+#  - xfsdump.x86_64
+#  - zip.x86_64
+#  - lvm2.x86_64        
+
+motd_message: |
+           *******************************************************************************
+           *                                                                             *
+           *                                                                             *
+           *  This system must only be used for conducting IJDI's business or            *
+           *  for purposes authorized by IJDI management.                                *
+           *                                                                             *
+           *                                                                             *
+           *******************************************************************************

@@ -1,0 +1,71 @@
+---
+    - name: Verify /etc/sudoers exists
+      stat:
+        path: /etc/sudoers
+      register: sudoers_file
+
+    - name: Backup /etc/sudoers
+      shell: cp /etc/sudoers /etc/sudoers_{{ date }}
+      register: backup_sudoers
+      when: sudoers_file.stat.exists
+
+    - name: Check if opc line exists in /etc/sudoers
+      shell: grep "opc"  /etc/sudoers
+      ignore_errors: true
+      register: opc_sudo
+
+    - name: add opc user in /etc/sudoers
+      lineinfile:
+        path: "/etc/sudoers"
+        insertafter: '^root'
+        line: 'opc     ALL=(ALL)       NOPASSWD: ALL'
+        state: present
+      when: opc_sudo.rc != 0 and inventory_hostname in groups['group1']
+
+    - name: add opc user in /etc/sudoers
+      lineinfile:
+        path: "/etc/sudoers"
+        insertafter: '^root'
+        line: 'opc     ALL=(ALL)       NOPASSWD: ALL'
+        state: present
+      when: opc_sudo.rc != 0 and inventory_hostname in groups['group2']
+
+    - name: Check if group1_sudoers line exists
+      shell: grep "{{ group1_sudoers }}"  /etc/sudoers
+      ignore_errors: true
+      register: group1_sudo
+
+    - name: add {{ group1_sudoers }} sudoers entry in group1 VMs
+      lineinfile:
+        path: "/etc/sudoers"
+        insertafter: '^opc'
+        line: "{{ group1_sudoers }}"
+        state: present
+      when: group1_sudo.rc != 0 and inventory_hostname in groups['group1']
+
+    - name: Check if group2_sudoers line exists
+      shell: grep "{{ group2_sudoers }}"  /etc/sudoers
+      ignore_errors: true
+      register: group2_sudo
+
+    - name: add {{ group2_sudoers }} sudoers entry in group2 VMs
+      lineinfile:
+        path: "/etc/sudoers"
+        insertafter: '^opc'
+        line: "{{ group2_sudoers }}"
+        state: present
+      when: group2_sudo.rc != 0 and inventory_hostname in groups['group2']
+
+    - name: Verify if opc user in /etc/sudoers file
+      shell: grep "opc"  /etc/sudoers
+      ignore_errors: true
+      register: post_opc_sudo
+
+    - debug: var=post_opc_sudo.stdout
+
+    - name: remove opc user from /etc/sudoers.d/90-cloud-init-users file
+      lineinfile:
+        path: /etc/sudoers.d/90-cloud-init-users
+        line: 'opc     ALL=(ALL)       NOPASSWD: ALL'
+        state: absent
+      when: post_opc_sudo is not skipped and post_opc_sudo is not failed

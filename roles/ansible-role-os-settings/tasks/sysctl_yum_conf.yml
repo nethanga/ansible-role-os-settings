@@ -1,0 +1,96 @@
+---
+- name: Verify /etc/sysctl.conf exists
+  stat:
+    path: /etc/sysctl.conf
+  register: sysctl_conf
+
+- name: Backup /etc/sysctl.conf
+  shell: cp /etc/sysctl.conf /etc/sysctl.conf_{{ date }}
+  register: backup_sshd_conf
+  when: sysctl_conf.stat.exists
+
+- name: Check for entries in sysctl.conf
+  shell: cat /etc/sysctl.conf | grep "{{ item }}"
+  with_items:
+    - net.ipv6.conf.all.disable_ipv6 = 1
+    - net.ipv6.conf.default.disable_ipv6 = 1
+    - net.ipv4.tcp_timestamps = 0
+    - kernel.sysrq = 0
+    - kernel.unknown_nmi_panic = 1
+    - net.ipv4.conf.all.accept_redirects = 0
+  register: sysctl_lines
+  ignore_errors: true
+  when: sysctl_conf.stat.exists
+ 
+- name: Add lines in sysctl.conf
+  lineinfile:
+    path: /etc/sysctl.conf
+    line: |
+      net.ipv6.conf.all.disable_ipv6 = 1
+      net.ipv6.conf.default.disable_ipv6 = 1
+      net.ipv4.tcp_timestamps = 0
+      kernel.sysrq = 0
+      kernel.unknown_nmi_panic = 1
+      net.ipv4.conf.all.accept_redirects = 0
+    state: present
+  when: sysctl_lines is failed and  sysctl_conf.stat.exists
+
+- name: Restart sysctl
+  shell: sysctl -p
+  ignore_errors: true
+  
+- name: Verify /etc/yum.conf exists
+  stat:
+    path: /etc/yum.conf
+  register: yum_conf
+
+- name: Backup /etc/yum.conf
+  shell: cp /etc/yum.conf /etc/yum.conf_{{ date }}
+  register: backup_sshd_conf
+  when: yum_conf.stat.exists
+  
+- name: Replace "gpgcheck=1"
+  lineinfile:
+    path: "/etc/yum.conf"
+    regexp: '(^gpgcheck=.*)'
+    line: 'gpgcheck=1'
+    backrefs: yes
+    state: present
+  when: yum_conf.stat.exists      
+
+- name: Replace "installonly_limit=3"
+  lineinfile:
+    path: "/etc/yum.conf"
+    regexp: '(^installonly_limit=.*)'
+    line: 'installonly_limit=3'
+    backrefs: yes
+    state: present
+  when: yum_conf.stat.exists
+
+- name: Replace "clean_requirements_on_remove=True"
+  lineinfile:
+    path: "/etc/yum.conf"
+    regexp: '(^clean_requirements_on_remove=.*)'
+    line: 'clean_requirements_on_remove=True'
+    backrefs: yes
+    state: present
+  when: yum_conf.stat.exists
+
+- name: Replace "best=True"
+  lineinfile:
+    path: "/etc/yum.conf"
+    regexp: '(^best=.*)'
+    line: 'best=True'
+    backrefs: yes
+    state: present
+  when: yum_conf.stat.exists
+
+- name: Replace "skip_if_unavailable=False"
+  lineinfile:
+    path: "/etc/yum.conf"
+    regexp: '(^skip_if_unavailable=.*)'
+    line: 'skip_if_unavailable=False'
+    backrefs: yes
+    state: present
+  when: yum_conf.stat.exists
+

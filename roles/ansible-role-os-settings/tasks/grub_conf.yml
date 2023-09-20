@@ -1,0 +1,34 @@
+---
+- name: Verify /etc/default/grub exists
+  stat:
+    path: /etc/default/grub
+  register: grub_file
+
+- name: Backup /etc/default/grub
+  shell: cp /etc/default/grub /etc/default/grub_{{ date }}
+  register: backup_grub
+  when: grub_file.stat.exists
+
+- name: Replace "GRUB_CMDLINE_LINUX"
+  lineinfile:
+    path: "/etc/default/grub"
+    regexp: '(^GRUB_CMDLINE_LINUX.*)'
+    line: 'GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty0 net.ifnames=0 rd.blacklist=nouveau nvme_core.io_timeout=4294967295 crashkernel=768M@64M"'
+    backrefs: yes
+    state: present
+  when: grub_file.stat.exists
+
+- name: Verify /boot/grub2/grub.cfg exists
+  stat:
+    path: /boot/grub2/grub.cfg
+  register: grub_cfg
+
+- name: Backup /boot/grub2/grub.cfg
+  shell: cp /boot/grub2/grub.cfg /boot/grub2/grub.cfg_{{ date }}
+  register: backup_grub_cfg
+  when: grub_cfg.stat.exists
+
+- name: Grub mkconfig
+  shell: grub2-mkconfig -o /boot/grub2/grub.cfg
+  register: grub_mkconfig
+  when: grub_cfg.stat.exists
