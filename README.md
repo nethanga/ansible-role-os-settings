@@ -37,7 +37,7 @@ Below are the pre-requisites before executing the role from Ansible Engine.
  
 Repository Information
 -----------------------
- Github : https://github.kyndryl.net/Hcs-cicindia-Japaniot/JTB-Kyndryl-CIC-automation
+ Github : https://github.com/nethanga/ansible-role-os-settings
   
 Directory Contents:  
 -------------------
